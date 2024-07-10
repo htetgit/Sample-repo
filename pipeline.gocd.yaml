@@ -1,8 +1,6 @@
-format_version: 12
-
 pipelines:
-  HelloWorldPipeline:
-    group: HelloWorldGroup
+  NewPipeline:
+    group: NewGroup
     materials:
       git:
         url: https://github.com/htetgit/Sample-repo.git
@@ -10,59 +8,49 @@ pipelines:
     stages:
       - name: Build
         jobs:
-          - name: BuildAndRunJob
+          - name: BuildAndTestJob
             tasks:
-              - exec:
-                  command: go
-                  arguments:
-                    - mod
-                    - init
-                    - hello-world-go
-                  working_directory: src/hello-app
-                  environment_variables:
-                    GO111MODULE: "on"
-              
-              - exec:
-                  command: go
-                  arguments:
-                    - get
-                    - github.com/gorilla/mux
-                  working_directory: src/hello-app
-                  environment_variables:
-                    GO111MODULE: "on"
-
-              - exec:
-                  command: go
-                  arguments:
-                    - mod
-                    - tidy
-                  working_directory: src/hello-app
-                  environment_variables:
-                    GO111MODULE: "on"
-              
-              - exec:
-                  command: go
-                  arguments:
-                    - build
-                    - -o
-                    - main.exe
-                    - .
-                  working_directory: src/hello-app
-                  environment_variables:
-                    GO111MODULE: "on"
-              
               - exec:
                   command: powershell
                   arguments:
                     - -Command
                     - |
-                      .\main.exe
-                      Start-Sleep -Seconds 10
+                      # Initialize Go module
+                      go mod init hello-world-go
+                      go get github.com/gorilla/mux
+                      go mod tidy
+                      go build -o main.exe .
+
+                      # Start the Go application in the background
+                      $process = Start-Process -FilePath .\main.exe -ArgumentList "" -NoNewWindow -PassThru
+
+                      # Wait for the server to start
+                      Start-Sleep -Seconds 5
+
+                      # Check if the process is running
+                      if ($process.HasExited) {
+                        Write-Output "The Go application has stopped running. Check the logs for errors."
+                        exit 1
+                      }
+
+                      # Check the application response
                       $response = Invoke-WebRequest -Uri http://localhost:8080 -UseBasicParsing
                       if ($response.Content -eq "Hello, World!") {
                         Write-Output "Test Passed"
                       } else {
-                        Write-Output "Test Failed"
+                        Write-Output "Test Failed: Expected 'Hello, World!' but received '$($response.Content)'"
                         exit 1
                       }
+
+                      # Stop the Go application with a timeout
+                      $startTime = [System.Diagnostics.Stopwatch]::StartNew()
+                      while ($process.HasExited -eq $false -and $startTime.Elapsed.TotalSeconds -lt 60) {
+                        Start-Sleep -Seconds 1
+                      }
+                      if ($process.HasExited -eq $false) {
+                        Stop-Process -Id $process.Id -Force
+                      }
+                      Write-Output "Stopping Go application..."
                   working_directory: src/hello-app
+                  environment_variables:
+                    GO111MODULE: "on"
