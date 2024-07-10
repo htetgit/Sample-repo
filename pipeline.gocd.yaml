@@ -15,6 +15,14 @@ pipelines:
               - exec:
                   command: go
                   arguments:
+                    - mod
+                    - tidy
+                  working_directory: src/hello-app
+                  environment_variables:
+                    GO111MODULE: "on"
+              - exec:
+                  command: go
+                  arguments:
                     - build
                     - -o
                     - main.exe
