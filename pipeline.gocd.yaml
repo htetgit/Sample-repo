@@ -16,8 +16,30 @@ pipelines:
                   command: go
                   arguments:
                     - mod
+                    - init
+                    - hello-world-go
+                  working_directory: src/hello-app
+                  environment_variables:
+                    GO111MODULE: "on"
+              
+              - exec:
+                  command: go
+                  arguments:
+                    - get
+                    - github.com/gorilla/mux
+                  working_directory: src/hello-app
+                  environment_variables:
+                    GO111MODULE: "on"
+
+              - exec:
+                  command: go
+                  arguments:
+                    - mod
                     - tidy
                   working_directory: src/hello-app
+                  environment_variables:
+                    GO111MODULE: "on"
+              
               - exec:
                   command: go
                   arguments:
@@ -26,6 +48,9 @@ pipelines:
                     - main.exe
                     - .
                   working_directory: src/hello-app
+                  environment_variables:
+                    GO111MODULE: "on"
+              
               - exec:
                   command: powershell
                   arguments:
