@@ -1,0 +1,38 @@
+format_version: 12
+
+pipelines:
+  HelloWorldPipeline:
+    group: myFirstpipeline
+    materials:
+      git:
+        url: https://github.com/htetgit/Sample-repo.git
+        branch: main
+    stages:
+      - name: Build
+        jobs:
+          - name: BuildAndRunJob
+            tasks:
+              - exec:
+                  command: go
+                  arguments:
+                    - build
+                    - -o
+                    - main
+                    - .
+                  working_directory: src/hello-app
+              - exec:
+                  command: ./main
+                  working_directory: src/hello-app
+              - exec:
+                  command: sh
+                  arguments:
+                    - -c
+                    - |
+                      output=$(./main)
+                      if [ "$output" == "Hello, World!" ]; then
+                        echo "Test Passed"
+                      else
+                        echo "Test Failed"
+                        exit 1
+                      fi
+                  working_directory: src/hello-app
