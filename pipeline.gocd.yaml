@@ -2,7 +2,7 @@ format_version: 12
 
 pipelines:
   HelloWorldPipeline:
-    group: myFirstpipeline
+    group: HelloWorldGroup
     materials:
       git:
         url: https://github.com/htetgit/Sample-repo.git
@@ -17,22 +17,23 @@ pipelines:
                   arguments:
                     - build
                     - -o
-                    - main
+                    - main.exe
                     - .
                   working_directory: src/hello-app
+                  environment_variables:
+                    GO111MODULE: "on"
               - exec:
-                  command: ./main
-                  working_directory: src/hello-app
-              - exec:
-                  command: sh
+                  command: powershell
                   arguments:
-                    - -c
+                    - -Command
                     - |
-                      output=$(./main)
-                      if [ "$output" == "Hello, World!" ]; then
-                        echo "Test Passed"
-                      else
-                        echo "Test Failed"
+                      .\main.exe
+                      Start-Sleep -Seconds 10
+                      $response = Invoke-WebRequest -Uri http://localhost:8080 -UseBasicParsing
+                      if ($response.Content -eq "Hello, World!") {
+                        Write-Output "Test Passed"
+                      } else {
+                        Write-Output "Test Failed"
                         exit 1
-                      fi
+                      }
                   working_directory: src/hello-app
