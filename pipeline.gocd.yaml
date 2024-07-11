@@ -16,16 +16,21 @@ pipelines:
                     - -Command
                     - |
                       # Stop any running instance of main.exe
-                      $process = Get-Process -Name main -ErrorAction SilentlyContinue
-                      if ($process) {
-                          Write-Output "Stopping running main.exe"
+                      Write-Output "Checking for running instances of main.exe"
+                      $existingProcess = Get-Process | Where-Object { $_.Name -eq "main" }
+                      if ($existingProcess) {
+                          Write-Output "Stopping existing main.exe process"
                           Stop-Process -Name main -Force
+                      } else {
+                          Write-Output "No existing main.exe process found"
                       }
 
                       # Remove existing main.exe file if it exists
                       if (Test-Path -Path .\main.exe) {
                           Write-Output "Removing existing main.exe file"
                           Remove-Item -Path .\main.exe -Force
+                      } else {
+                          Write-Output "No existing main.exe file to remove"
                       }
 
                       # Initialize Go module
@@ -34,7 +39,7 @@ pipelines:
                       go get github.com/gorilla/mux
                       go mod tidy
 
-                      # Build the application
+                      # Build the Go application
                       Write-Output "Building the Go application"
                       go build -o main.exe .
 
