@@ -1,6 +1,6 @@
 pipelines:
   NewPipeline:
-    group: NewGroup
+    group: myFirstpipeline
     materials:
       git:
         url: https://github.com/htetgit/Sample-repo.git
@@ -15,16 +15,36 @@ pipelines:
                   arguments:
                     - -Command
                     - |
+                      # Debug: Start of the script
+                      Write-Output "Starting the build and test script"
+
+                      # Check if port 8080 is already in use and stop the process
+                      Write-Output "Checking if port 8080 is in use"
+                      $port = 8080
+                      $process = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
+                      if ($process) {
+                          Write-Output "Port 8080 is in use. Stopping the existing process."
+                          $pid = (Get-Process -Id $process.OwningProcess).Id
+                          Stop-Process -Id $pid -Force
+                          Start-Sleep -Seconds 5
+                      }
+
                       # Initialize Go module
+                      Write-Output "Initializing Go module"
                       go mod init hello-world-go
                       go get github.com/gorilla/mux
                       go mod tidy
+
+                      # Build the application
+                      Write-Output "Building the Go application"
                       go build -o main.exe .
 
                       # Start the Go application in the background
+                      Write-Output "Starting the Go application"
                       $process = Start-Process -FilePath .\main.exe -ArgumentList "" -NoNewWindow -PassThru
 
                       # Wait for the server to start
+                      Write-Output "Waiting for the server to start"
                       Start-Sleep -Seconds 5
 
                       # Check if the process is running
@@ -34,23 +54,30 @@ pipelines:
                       }
 
                       # Check the application response
-                      $response = Invoke-WebRequest -Uri http://localhost:8080 -UseBasicParsing
-                      if ($response.Content -eq "Hello, World!") {
-                        Write-Output "Test Passed"
-                      } else {
-                        Write-Output "Test Failed: Expected 'Hello, World!' but received '$($response.Content)'"
-                        exit 1
+                      Write-Output "Checking the application response"
+                      try {
+                          $response = Invoke-WebRequest -Uri http://localhost:8080 -UseBasicParsing -TimeoutSec 10
+                          if ($response.Content -eq "Hello, World!") {
+                              Write-Output "Test Passed"
+                          } else {
+                              Write-Output "Test Failed: Expected 'Hello, World!' but received '$($response.Content)'"
+                              exit 1
+                          }
+                      } catch {
+                          Write-Output "Test Failed: Unable to connect to the Go application."
+                          exit 1
                       }
 
                       # Stop the Go application with a timeout
+                      Write-Output "Stopping the Go application"
                       $startTime = [System.Diagnostics.Stopwatch]::StartNew()
                       while ($process.HasExited -eq $false -and $startTime.Elapsed.TotalSeconds -lt 60) {
-                        Start-Sleep -Seconds 1
+                          Start-Sleep -Seconds 1
                       }
                       if ($process.HasExited -eq $false) {
-                        Stop-Process -Id $process.Id -Force
+                          Stop-Process -Id $process.Id -Force
                       }
-                      Write-Output "Stopping Go application..."
+                      Write-Output "Go application stopped"
                   working_directory: src/hello-app
                   environment_variables:
                     GO111MODULE: "on"
