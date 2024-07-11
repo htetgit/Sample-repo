@@ -15,8 +15,27 @@ pipelines:
                   arguments:
                     - -Command
                     - |
-                      # Debug: Start of the script
-                      Write-Output "Starting the build and test script"
+                      # Clean untracked files and directories, including ignored files
+                      Write-Output "Cleaning untracked files and directories, including ignored files"
+                      git clean -dffx
+
+                      # Stop any running instance of main.exe
+                      Write-Output "Checking for running instances of main.exe"
+                      $existingProcess = Get-Process | Where-Object { $_.Name -eq "main" }
+                      if ($existingProcess) {
+                          Write-Output "Stopping existing main.exe process"
+                          Stop-Process -Name main -Force
+                      } else {
+                          Write-Output "No existing main.exe process found"
+                      }
+
+                      # Remove existing main.exe file if it exists
+                      if (Test-Path -Path .\main.exe) {
+                          Write-Output "Removing existing main.exe file"
+                          Remove-Item -Path .\main.exe -Force
+                      } else {
+                          Write-Output "No existing main.exe file to remove"
+                      }
 
                       # Initialize Go module
                       Write-Output "Initializing Go module"
@@ -24,11 +43,11 @@ pipelines:
                       go get github.com/gorilla/mux
                       go mod tidy
 
-                      # Build the application
+                      # Build the Go application
                       Write-Output "Building the Go application"
                       go build -o main.exe .
 
-                      # Start the Go application in the background on port 8081
+                      # Start the Go application in the background on port 8082
                       Write-Output "Starting the Go application on port 8082"
                       $process = Start-Process -FilePath .\main.exe -ArgumentList "" -NoNewWindow -PassThru
 
@@ -45,7 +64,7 @@ pipelines:
                       # Check the application response
                       Write-Output "Checking the application response"
                       try {
-                          $response = Invoke-WebRequest -Uri http://localhost:8081 -UseBasicParsing -TimeoutSec 10
+                          $response = Invoke-WebRequest -Uri http://localhost:8082 -UseBasicParsing -TimeoutSec 10
                           if ($response.Content -eq "Hello, World!") {
                               Write-Output "Test Passed"
                           } else {
