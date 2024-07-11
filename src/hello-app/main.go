@@ -13,5 +13,7 @@ func main() {
     })
     http.Handle("/", r)
     fmt.Println("Server started at http://localhost:8082")
-    http.ListenAndServe(":8082", nil)
+    if err := http.ListenAndServe(":8082", nil); err != nil {
+        fmt.Println("Server failed:", err)
+    }
 }
