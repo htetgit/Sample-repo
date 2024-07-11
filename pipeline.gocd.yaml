@@ -15,8 +15,18 @@ pipelines:
                   arguments:
                     - -Command
                     - |
-                      # Debug: Start of the script
-                      Write-Output "Starting the build and test script"
+                      # Stop any running instance of main.exe
+                      $process = Get-Process -Name main -ErrorAction SilentlyContinue
+                      if ($process) {
+                          Write-Output "Stopping running main.exe"
+                          Stop-Process -Name main -Force
+                      }
+
+                      # Remove existing main.exe file if it exists
+                      if (Test-Path -Path .\main.exe) {
+                          Write-Output "Removing existing main.exe file"
+                          Remove-Item -Path .\main.exe -Force
+                      }
 
                       # Initialize Go module
                       Write-Output "Initializing Go module"
