@@ -28,8 +28,8 @@ pipelines:
                       Write-Output "Building the Go application"
                       go build -o main.exe .
 
-                      # Start the Go application in the background on port 8081
-                      Write-Output "Starting the Go application on port 8081"
+                      # Start the Go application in the background on port 8082
+                      Write-Output "Starting the Go application on port 8082"
                       $process = Start-Process -FilePath .\main.exe -ArgumentList "" -NoNewWindow -PassThru
 
                       # Wait for the server to start
@@ -45,7 +45,7 @@ pipelines:
                       # Check the application response
                       Write-Output "Checking the application response"
                       try {
-                          $response = Invoke-WebRequest -Uri http://localhost:8081 -UseBasicParsing -TimeoutSec 10
+                          $response = Invoke-WebRequest -Uri http://localhost:8082 -UseBasicParsing -TimeoutSec 10
                           if ($response.Content -eq "Hello, World!") {
                               Write-Output "Test Passed"
                           } else {
@@ -57,16 +57,10 @@ pipelines:
                           exit 1
                       }
 
-                      # Stop the Go application with a timeout
+                      # Stop the Go application
                       Write-Output "Stopping the Go application"
-                      $startTime = [System.Diagnostics.Stopwatch]::StartNew()
-                      while ($process.HasExited -eq $false -and $startTime.Elapsed.TotalSeconds -lt 60) {
-                          Start-Sleep -Seconds 1
-                      }
-                      if ($process.HasExited -eq $false) {
-                          Stop-Process -Id $process.Id -Force
-                      }
+                      Stop-Process -Id $process.Id -Force
                       Write-Output "Go application stopped"
                   working_directory: src/hello-app
                   environment_variables:
-                    GO111MODULE: "on
+                    GO111MODULE: "on"
